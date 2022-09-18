@@ -1,0 +1,222 @@
+---
+title: "CX 4803 (CML) Assignment One"
+author: "Quill Healey"
+date: "1/30/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Problem 1
+
+When given a quantitative response $Y$ and $p = 2$ predictors, $X_1 \ \text{and} \ X_2$, we assume there exists a general relationship between the response and predictors such that:
+
+$$
+\begin{aligned}
+&Y = f(X) \ + \ \epsilon
+\end{aligned}
+$$
+
+where $\epsilon$ is a random variable representing error and $X = [X_1 \ X_2]$. For this particular data set we impose a parametric model such that the relationship is described as 
+
+$$
+\begin{aligned}
+y_i = \beta_0^{*} + \beta_1^{*}x_{i1} + \beta_2^{*}x_{i2} + u_i
+\end{aligned}
+$$
+
+## a)
+We must now estimate $$\beta_0^{*} , \ \beta_1^{*} ,\  \text{and} \ \beta_2^{*} $$Let $\pmb{y}$ be our response data and $\pmb{x_1}, \pmb{x_2}$ be the data for our two features. To find our estimates we will need to solve the matrix equation:
+$$
+\begin{aligned}
+\pmb{y} = \left[\begin{array}{ccc} 1 & x_{11} & x_{12} \\ 1 & x_{21} & x_{22} \\ \vdots & \vdots & \vdots \\ 1 & x_{10, 1} & x_{10, 2}\end{array}\right]\left[\begin{array}{c} \beta_0 \\ \beta_1 \\ \beta_2 \end{array}\right]
+\end{aligned}
+$$
+I will numerically compute this system using R's built-in QR decomposition method.
+
+``` {r P1a}
+y = c( 0.7472,-0.8393, -0.3166, 0.4929,-2.6323, -0.6593, 0.6880, 0.3795, -0.6517, -0.5952)
+x1 = c(0.5434, 0.2784, 0.4245, 0.8448, 0.0047, 0.1216, 0.6707, 0.8259, 0.1367, 0.5751)
+x2 = c(0.8913, 0.2092, 0.1853, 0.1084, 0.2197, 0.9786, 0.8117, 0.1719, 0.8162, 0.2741)
+X = matrix(c(rep(1, length(y)), x1, x2), ncol = 3)
+model = qr.solve(qr(X), y)
+beta_hat = c(model[1], model[2], model[3]); beta_hat
+```
+
+As seen in the code block we find that
+$$
+\begin{aligned}
+&\hat{\beta_0} = -2.456152, \ \hat{\beta_1} = 3.244190, \ \hat{\beta_2} = 1.460780\\
+&\text{Plugging into the equation:} \\ 
+&\hat{y} = \hat{\beta_0} \ + \ \hat{\beta_1}x_1 \ + \ \hat{\beta_2}x_2 \ \\
+&\text{we get} \\
+&y_i = -2.456152 + 3.244190x_{i1} + 1.460780x_{i2}
+\end{aligned}
+$$
+
+## b)
+
+Let us now predict $y$ for $\pmb{x} = (0.1, 0.2)^{T}$ using $y_0 = -2.456152 + 3.244190x_{01} + 1.460780x_{02}$
+``` {r P1b}
+y0 = model[1] + model[2] * 0.1 + model[3]*0.2; cat("y0: ", y0)
+```
+
+We find that $y = -1.839577$
+
+## c)
+
+We know that we can estimate the variance of of the noise using the formula:
+$$
+\begin{aligned}
+\hat{\sigma}^2 = \frac{1}{n - (p+1)}RSS(\hat{\beta})
+\end{aligned}
+$$
+Where $n = 10$, $p = 2$, $RSS(\hat{\beta}) = \sum r_i^2$, and $r_i$ is the difference between each actual observation values and the observation values as predicted by the model. Let us make the required computations.
+
+``` {r P1c}
+n = 10
+p = 2
+RSS = sum((y - (X %*% beta_hat))^2); cat("RSS: ", RSS, "\n")
+sigmasq_hat = ( 1/(n - (p+1)) ) * RSS; cat("sigmasq_hat = ", sigmasq_hat)
+```
+
+We find that $RSS(\hat{\beta}) = 0.9420967$, and using that knowledge we get $\hat{\sigma}^2 = 0.1345852$
+
+## d)
+
+To find the variance of each element in $\hat{\beta}$, we will actually compute a square matrix where the diagonal entries are the variances of each regression coefficient estimate and the non-diagonal entries are the covariances between the regression coefficient estimates. Consequently we can find $\hat{\beta}_1$ by choosing the $i, j = 2, 2$ element in the matrix.
+
+We will compute this matrix using the formula $Var(\hat{\beta}) = (\pmb{X^{T}X})^{-1}\hat{\sigma}^2$
+
+``` {r P1d}
+beta_var = solve((t(X) %*% X)) * sigmasq_hat; beta_var
+```
+
+Looking at our R output we see that the matrix's $2, 2$ entry is equal to $0.1826097$, therefore $Var(\hat{\beta}_1) = 0.1826097$
+
+## e)
+
+Let us now ensure that our reasoning has been valid by creating a simulation of this process.
+As we are now playing the part of "nature," let's choose $\beta_0^* = 3, \ \beta_1^* = 2, \ \beta_2^* = 4, \ \text{and} \ \sigma^2 = 0.5$
+``` {r P1 e data_initialization}
+b0 = 3
+b1 = 2
+b2 = 4
+s2 = 0.5
+```
+
+Now, to summarize the following simulation code: we will assume that we have 100,000 samples, each consisting of 5 observations. Recall that parts a-d we were working with one ten-observation sample. Note, however, that the computation process is identical. For each sample we will add its results to respective result vectors containing the estimated values from each sample (for instance we will have a vector for $\beta_0^*, \ \beta_1^*, etc.$), and then at the end we will compute the expected values of our estimate vectors. Because our estimators are unbiased estimators we should observe that the expected values are identical (or nearly identical) to the respective "*" values.
+
+Let's begin our simulation:
+``` {r P1 simulation}
+n = 5 # sample size
+nsamp = 100000 # number of samples
+p = 2
+
+# Initializing the vectors which will contain the estimates
+b0hat = rep(0, nsamp) # estimates of b0
+b1hat = rep(0, nsamp) # estimates of b1
+b2hat = rep(0, nsamp) # estimates of b2
+RSS_vals = rep(0, nsamp) # the residual sum of squares for each sample
+SE2b0hat = rep(0, nsamp) # estimates of Var(b0hat)
+SE2b1hat = rep(0, nsamp)# estimates of Var(b1hat)
+SE2b2hat = rep(0, nsamp) # estimates of Var(b2hat)
+varihat = rep(0, nsamp) # estimates of noise variance
+
+# start of simulation
+for (i in 1:nsamp) {
+  # generate sample
+  x1 = runif(n)
+  x2 = runif(n, min = 1, max = 2)
+  y = b0 + b1*x1 + b2*x2 + rnorm(n) * sqrt(s2)
+  
+  # estimate b0 and b1
+  X = matrix(c(rep(1, n), x1, x2), ncol = 3)
+  model = qr.solve(qr(X), y)
+  beta_hat = c(model[1], model[2], model[3])
+  
+  # calculate the residual sum of squares
+  RSS = sum((y - (X %*% beta_hat))^2)
+  
+  # calculate RSE (estimate of the noise variance)
+  RSE = ( 1 / (n - (p + 1)) ) * RSS
+  
+  # calculate covariance matrix 
+  beta_var = solve(t(X) %*% X) * RSE
+  
+  # store the estimates
+  b0hat[i] = model[1]
+  b1hat[i] = model[2]
+  b2hat[i] = model[3]
+  RSS_vals[i] = RSS
+  varihat[i] = RSE
+  SE2b0hat[i] = beta_var[1, 1]
+  SE2b1hat[i] = beta_var[2, 2]
+  SE2b2hat[i] = beta_var[3, 3]
+}
+E_b0hat = mean(b0hat); print(E_b0hat);
+E_b1hat = mean(b1hat); print(E_b1hat);
+E_b2hat = mean(b2hat); print(E_b2hat);
+E_varihat = mean(varihat); print(E_varihat);
+```
+Our simulation outputs: $\mathbb{E}(\hat{\beta}_0) =$ `r E_b0hat`, $\mathbb{E}(\hat{\beta}_1) =$ `r E_b1hat`, $\mathbb{E}(\hat{\beta}_2) =$ `r E_b2hat`, $\mathbb{E}(\hat{\sigma}^2) =$ `r E_varihat`. These values nearly identically match our chosen "nature values." 
+
+## Problem 2
+
+To create the needed histogram we can simply use the simulation created in Problem 1. Recall that we will evaluate 100,000 samples, each of which consists of $n = 5$ observations, and that the noise variance $\sigma^2 = 0.5$.
+
+``` {r P2 plot}
+bin = seq(min(RSS_vals / s2), max(RSS_vals / s2), length = 100)
+hist(RSS_vals / s2, breaks = bin, freq = FALSE, main = "Histogram of RSS / s^2", xlim = c(0, 20), xlab = "RSS / s^2")
+lines(seq(0, 30, .1), dchisq(seq(0, 30, .1), df = 2), col = "red", xlim = c(0, 20))
+```
+
+It is fairly obvious from observing the plot that $\frac{RSS(\hat{\beta})}{\sigma^2}$ follows the chi-squared distribution. 
+
+## Problem 3
+
+Once again, Problem 1's simulation will provide us with the necessary data to create an experiment to test the hypothesis that $\frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}} \sim N(0, 1)$ where $q$ is the average of $Var(\hat{\beta}_0)$. In the simulation above we stored these variances in the "SE2b0hat" variable.
+
+``` {r P3 initialization}
+q = mean(SE2b0hat); q
+test = (b0hat - b0) / sqrt(q)
+summary(test)
+```
+
+Let us test this claim three different ways. The first two will be visualizations. The third will be a statistical test.
+
+Our first visualization will be a histogram, following the example of Problem 2.
+
+``` {r P3 histogram}
+p3bin = seq(min(test), max(test), length = 250)
+hist(test, breaks = p3bin, freq = FALSE, main = "(b0_hat - bo) / sqrt(q) vs N(0, 1)", xlim = c(-10, 10), xlab = "(b0_hat - bo) / sqrt(q)")
+lines(seq(-10, 10, by = .1), dnorm(seq(-10, 10, by = .1)), col = 'red')
+```
+
+Looking at the histogram of $\frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}}$ versus the plot of $N(0, 1)$ we can feel fairly confident that the former is not distributed according to the latter. However, let's continue with our analysis.
+
+Let us now use a normal quantile plot to help in our experiment
+
+``` {r P4 qqnorm plot}
+qqnorm(test)
+qqline(test)
+```
+
+As our plot and corresponding line do not at all follow the desired 45 degree mapping we can again feel confident that $\frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}} \not \sim N(0, 1)$. 
+
+Finally, let's run a hypothesis test. We begin by defining our null and alternative hypotheses: 
+$$
+\begin{aligned}
+&H_0: \frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}} \sim N(0, 1) \\
+&H_a: \frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}} \not \sim N(0, 1)
+\end{aligned}
+$$
+As opposed to computing the test statistic and p-value ourselves let's utilize the Anderson-Darling normality test:
+``` {r P3 plot}
+library(nortest)
+result = ad.test((b0hat - b0)/sqrt(mean(SE2b0hat))); result
+```
+
+From our R chunk we see that the p-value of our test is `r result[2]`, which clearly indicates that we should reject our null hypothesis and conclude that $\frac{\hat{\beta}_0 - \beta_0^*}{\sqrt{q}} \not \sim N(0, 1)$. 

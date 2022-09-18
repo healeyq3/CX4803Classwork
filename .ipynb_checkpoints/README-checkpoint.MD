@@ -1,0 +1,5 @@
+This folder contains some of the lecture material for CX 4803 CML (The Computational Foundations of Machine Learning), as well as an "assignments" folder where the course's eight problem sets are housed. A few notes regarding these:
+
+1) I did not recieve full points on every homework, and nor have I corrected the assignments - thus some files certainly contain some bugs.
+2) I did not write all of the code within this file - if the name of the file begins with "demo," my professor wrote it. Additionally, some of the MATLAB code I wrote explicitly uses his starter code, and my SVM code (A7), while written in Python, relies heavily on the smo code that he provided.
+3) My NN code in A8 is incomplete - I only needed >= ~.3 of the points on this assignment to keep an A, and while I still wanted to complete it, I had to prepare for an exam for a different class.

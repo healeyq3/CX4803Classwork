@@ -1,0 +1,68 @@
+---
+title: "Demo Regression Translation"
+author: "Quill Healey"
+date: "1/21/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Three Mystery values, $B_0, B_1, s_2$ (should it not be $\sigma^2$?)
+``` {r mystery}
+b0 = 3
+b1 = 2
+s2 = 0.5
+```
+
+Initializing sample data:
+``` {r sample_data}
+n = 5 # sample size
+nsamp = 100000 # number of samples, in reality we have 1
+b0hat = rep(0, nsamp) # estimates of b0
+b1hat = rep(0, nsamp) # estimates of b1
+SE2b0hat = rep(0, nsamp) # estimates of Var(b1hat)
+SE2b1hat = rep(0, nsamp) # estimates of Var(b0hat)
+varihat = rep(0, nsamp) # estimates of noise variance
+```
+
+Just running the below code without the loop so I can see what one iteration looks like
+``` {r practice}
+x = runif(n)
+y = b0 + b1*x + rnorm(n) * sqrt(s2)
+X = matrix(c(rep(1, n), x), ncol = 2)
+model = qr.solve(qr(X), y)
+model
+```
+
+``` {r test of expectation}
+num = 5 * nsamp
+x_t = runif(num)
+y_t = b0 + b1*x_t + rnorm(num) * sqrt(s2)
+X_t = matrix(c(rep(1:num), x_t), ncol = 2)
+model = qr.solve(qr(X_t), y_t)
+model
+```
+
+Creating the sample data
+``` {r creation_of_data}
+for (i in 1:nsamp) {
+  # generate sample
+  x = runif(n)
+  y = b0 + b1*x + rnorm(n) * sqrt(s2)
+  # estimate b0 and b1
+  X = matrix(c(rep(1, n), x), ncol = 2)
+  model = qr.solve(qr(X), y)
+  # store the estimates
+  b0hat[i] = model[1]
+  b1hat[i] = model[2]
+  # estimate the variance of the distribution
+  temp = y - (model[1] - model[2] * x)
+}
+mean(b0hat)
+mean(b1hat)
+```
+
